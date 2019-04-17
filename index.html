@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8 />
+  <title>A Denver Home</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: rgb(43, 43, 43);
+      font-family: "Lato", sans-serif;
+      font-size: 100%;
+      font-weight: 300;
+      color: rgb(172, 172, 172);
+    }
+
+    header,
+    footer,
+    section {
+      padding: 6px 10%;
+      margin: 0 auto;
+      width: 80%
+    }
+
+    h1 {
+      display: inline-block;
+      margin-right: 20px;
+      color: rgb(190, 190, 190);
+      font-size: 3.5em;
+      font-weight: 700;
+    }
+
+    h2 {
+      display: inline-block;
+      color: rgba(255, 200, 0, 0.8);
+      letter-spacing: 0.05em;
+      margin-top: 0px;
+      font-weight: 300;
+      text-transform: uppercase;
+      border-bottom: 1px dotted rgba(255, 200, 0, 0.5);
+      ;
+    }
+
+    #map {
+      width: 80%;
+      height: 540px;
+      margin: 10px auto;
+    }
+
+    p {
+      font-size: 1em;
+      color: rgba(170, 170, 170);
+      ;
+      font-weight: 300;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>A Denver Home</h1>
+    <h2>Locating Amenities in Denver, Co.</h2>
+  </header>
+
+  <div id='map'></div>
+
+  <footer>
+    <p>Map authored by Osama Abdl-Haleem</p>
+    <p>This map depicts various amenities in Denver, Colorado to help people find a house. Click on a location to see all the fire stations, grocery stores, and after school programs within one kilometer. Hover over the markers to get more information. Enjoy.</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
+  <script src="data/denver-fire-stations.js"></script>
+  <script src="data/after-school-programs.js"></script>
+  <script src="data/denver-food-stores.js"></script>
+  <script>
+    var map = L.map('map', {
+      center: [39.7256, -104.9252],
+      zoom: 11,
+    });
+
+    var tiles = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/dark_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // BEGIN WRITING YOUR SOLUTION CODE HERE
+    var denverLayers = {}
+
+    var layerInfo = {
+      programsLayer: {
+        name: "Afterschool Programs",
+        color: 'orchid',
+        file: programs
+      },
+      storesLayer: {
+        name: "Food Stores",
+        color: 'dodgerblue',
+        file: stores
+      },
+      stationsLayer: {
+        name: "Fire Stations",
+        color: 'red',
+        file: stations
+      }
+    }
+
+    var commonStyles = {
+      fillOpacity: 1,
+      stroke: false,
+      radius: 5, // I know it's supposed to be 10 but that seemed too big.
+    }
+
+    for (var layer in layerInfo) {
+      denverLayers[layer] = L.geoJson(layerInfo[layer].file, {
+        pointToLayer: function(feature, latlng) {
+          return L.circleMarker(latlng, commonStyles);
+        },
+        style: function(feature) {
+          return {
+            fillColor: layerInfo[layer].color
+          }
+        }
+      }).addTo(map);
+    }
+
+    var sourcesLabels = {
+      "<b style='color:orchid'>Afterschool Programs</b>": denverLayers.programsLayer,
+      "<b style='color:dodgerblue'>Food Stores</b>": denverLayers.storesLayer,
+      "<b style='color:red'>Fire Stations</b>": denverLayers.stationsLayer
+    }
+
+    L.control.layers(null, sourcesLabels, {
+      collapsed: false
+    }).addTo(map);
+
+    map.on('click', function(e) {
+      for (layer in layerInfo)
+        denverLayers[layer].eachLayer(function(circle) {
+          var distance = e.latlng.distanceTo(circle.getLatLng()) / 1000;
+          if (distance > 1) {
+            circle.setStyle({
+              fillOpacity: .1
+            });
+          } else {
+            circle.setStyle({
+              fillOpacity: 1
+            });
+            if (layerInfo[layer].name == "Afterschool Programs") {
+              circle.bindTooltip(circle.feature.properties.ORGANIZATI);
+            } else if (layerInfo[layer].name == "Food Stores") {
+              circle.bindTooltip(circle.feature.properties.STORE_NAME);
+            } else {
+              circle.bindTooltip(circle.feature.properties.STATION_NU);
+            }
+
+          }
+        });
+    });
+  </script>
+
+</body>
+
+</html>
